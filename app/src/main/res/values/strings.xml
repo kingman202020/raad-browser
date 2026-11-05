@@ -28,6 +28,7 @@
     <string name="cancel">إلغاء</string>
     <string name="default_dir">مجلد التطبيق الافتراضي (Downloads)</string>
     <string name="download_started">بدأ التحميل</string>
+    <string name="download_done">تم تحميل: %1$s</string>
     <string name="pause">إيقاف مؤقت</string>
     <string name="resume">استئناف</string>
     <string name="open_file">فتح الملف</string>

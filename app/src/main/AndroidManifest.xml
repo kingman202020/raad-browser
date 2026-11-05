@@ -4,6 +4,13 @@
     <!-- إذن الإنترنت أساسي للمتصفح -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- إشعارات التحميل (مطلوب في أندرويد 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- الخدمة الأمامية لاستمرار التحميلات في الخلفية -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- الاهتزاز عند اكتمال التحميل -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <!-- للأجهزة القديمة فقط (أندرويد 9 وأقل). في الإصدارات الحديثة نستخدم Scoped Storage / SAF بدون أذونات -->
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
@@ -27,6 +34,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- خدمة التحميلات الأمامية: تبقي التحميلات تعمل بعد الخروج من التطبيق -->
+        <service
+            android:name=".downloads.DownloadService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
         <!-- FileProvider لمشاركة/فتح الملفات المحملة من مجلد التطبيق الافتراضي -->
         <provider

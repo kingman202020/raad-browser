@@ -60,6 +60,8 @@ object DownloadEngine {
             treeUri = treeUri
         )
         downloads.add(0, item)
+        // تشغيل الخدمة الأمامية ليستمر التحميل حتى بعد الخروج من التطبيق
+        DownloadService.start(app)
         start(item, tryResume = false)
     }
 
@@ -72,6 +74,7 @@ object DownloadEngine {
         if (item.status != DownloadItem.Status.PAUSED && item.status != DownloadItem.Status.FAILED) return
         item.status = DownloadItem.Status.RUNNING
         item.error = null
+        DownloadService.start(app)
         start(item, tryResume = true)
     }
 
@@ -232,7 +235,7 @@ object DownloadEngine {
         return file
     }
 
-    private fun mimeFor(fileName: String): String {
+    fun mimeFor(fileName: String): String {
         val ext = fileName.substringAfterLast('.', "").lowercase()
         return MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "*/*"
     }

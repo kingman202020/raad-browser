@@ -1,5 +1,8 @@
 package com.raad.browser
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -40,6 +43,15 @@ class MainActivity : ComponentActivity() {
         BookmarkStore.init(applicationContext)
         DownloadEngine.init(applicationContext)
         TabManager.init(applicationContext)
+
+        // طلب إذن الإشعارات في أندرويد 13+ لعرض حالة التحميلات في شريط المهام
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
+                PackageManager.PERMISSION_GRANTED
+            ) {
+                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 100)
+            }
+        }
 
         setContent {
             RaadBrowserTheme {
