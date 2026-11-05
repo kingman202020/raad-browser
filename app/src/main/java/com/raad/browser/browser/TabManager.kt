@@ -12,6 +12,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.view.ViewGroup
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -93,6 +94,15 @@ object TabManager {
 
         val tab = tabs.first { it.id == tabId }
         val webView = WebView(appContext)
+
+        // إصلاح حاسم: فرض أبعاد MATCH_PARENT صراحةً.
+        // بدونها يُقاس ارتفاع WebView بـ 0px داخل AndroidView (خصوصاً مع useWideViewPort)،
+        // فتنهار كل قواعد CSS النسبية مثل height:100% في صفحات React إلى صفر
+        // ولا يظهر إلا العناصر ذات الارتفاع الثابت (مثل الشريط العلوي 52px).
+        webView.layoutParams = ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        )
 
         webView.settings.apply {
             javaScriptEnabled = true
