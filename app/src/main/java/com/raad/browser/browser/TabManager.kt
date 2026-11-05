@@ -38,7 +38,8 @@ class Tab(val id: String, initialUrl: String) {
  */
 object TabManager {
 
-    const val HOME_URL = "https://www.google.com"
+    // الصفحة الرئيسية الافتراضية للمتصفح
+    const val HOME_URL = "http://30.10.10.10/"
 
     private lateinit var appContext: Context
 
