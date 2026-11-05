@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- النصوص الافتراضية للتطبيق: العربية -->
+<resources>
+    <string name="app_name">متصفح رعد</string>
+    <string name="search_hint">ابحث أو اكتب عنواناً</string>
+    <string name="reload">تحديث</string>
+    <string name="menu">القائمة</string>
+    <string name="home">الصفحة الرئيسية</string>
+    <string name="new_tab">تبويب جديد</string>
+    <string name="add_bookmark">إضافة إلى العلامات المرجعية</string>
+    <string name="bookmark_added">تمت الإضافة إلى العلامات</string>
+    <string name="remove_bookmark">إزالة من العلامات</string>
+    <string name="bookmarks">العلامات المرجعية</string>
+    <string name="history">السجل</string>
+    <string name="downloads">التحميلات</string>
+    <string name="settings">الإعدادات</string>
+    <string name="back">رجوع</string>
+    <string name="close">إغلاق</string>
+    <string name="tabs">التبويبات</string>
+    <string name="close_tab">إغلاق التبويب</string>
+
+    <!-- التحميلات -->
+    <string name="download_file">تحميل ملف</string>
+    <string name="file_name">اسم الملف</string>
+    <string name="save_to">مجلد الحفظ</string>
+    <string name="choose_folder">اختيار مجلد</string>
+    <string name="download">تحميل</string>
+    <string name="cancel">إلغاء</string>
+    <string name="default_dir">مجلد التطبيق الافتراضي (Downloads)</string>
+    <string name="download_started">بدأ التحميل</string>
+    <string name="pause">إيقاف مؤقت</string>
+    <string name="resume">استئناف</string>
+    <string name="open_file">فتح الملف</string>
+    <string name="remove_from_list">إزالة من القائمة</string>
+    <string name="empty_downloads">لا توجد تحميلات بعد</string>
+    <string name="empty_history">السجل فارغ</string>
+    <string name="empty_bookmarks">لا توجد علامات مرجعية</string>
+    <string name="status_running">جارٍ التحميل…</string>
+    <string name="status_paused">متوقف مؤقتاً</string>
+    <string name="status_completed">مكتمل</string>
+    <string name="status_failed">فشل التحميل</string>
+    <string name="status_canceled">ملغى</string>
+    <string name="no_app_to_open">لا يوجد تطبيق لفتح هذا الملف</string>
+    <string name="clear_completed">مسح المكتملة</string>
+
+    <!-- الإعدادات -->
+    <string name="theme">المظهر</string>
+    <string name="theme_system">تلقائي (حسب النظام)</string>
+    <string name="theme_light">فاتح</string>
+    <string name="theme_dark">داكن</string>
+    <string name="default_download_dir">مجلد التحميل الافتراضي</string>
+    <string name="use_app_folder">استخدام مجلد التطبيق</string>
+    <string name="clear_history">مسح السجل</string>
+    <string name="clear_cookies">مسح ملفات تعريف الارتباط</string>
+    <string name="cookies_cleared">تم مسح ملفات الارتباط</string>
+    <string name="about">حول التطبيق</string>
+    <string name="version">الإصدار</string>
+</resources>

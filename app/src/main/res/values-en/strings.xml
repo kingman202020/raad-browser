@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Raad Browser</string>
+    <string name="search_hint">Search or type URL</string>
+    <string name="reload">Reload</string>
+    <string name="menu">Menu</string>
+    <string name="home">Home</string>
+    <string name="new_tab">New tab</string>
+    <string name="add_bookmark">Add to bookmarks</string>
+    <string name="bookmark_added">Bookmark added</string>
+    <string name="remove_bookmark">Remove bookmark</string>
+    <string name="bookmarks">Bookmarks</string>
+    <string name="history">History</string>
+    <string name="downloads">Downloads</string>
+    <string name="settings">Settings</string>
+    <string name="back">Back</string>
+    <string name="close">Close</string>
+    <string name="tabs">Tabs</string>
+    <string name="close_tab">Close tab</string>
+
+    <string name="download_file">Download file</string>
+    <string name="file_name">File name</string>
+    <string name="save_to">Save to</string>
+    <string name="choose_folder">Choose folder</string>
+    <string name="download">Download</string>
+    <string name="cancel">Cancel</string>
+    <string name="default_dir">App default folder (Downloads)</string>
+    <string name="download_started">Download started</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
+    <string name="open_file">Open file</string>
+    <string name="remove_from_list">Remove from list</string>
+    <string name="empty_downloads">No downloads yet</string>
+    <string name="empty_history">History is empty</string>
+    <string name="empty_bookmarks">No bookmarks</string>
+    <string name="status_running">Downloading…</string>
+    <string name="status_paused">Paused</string>
+    <string name="status_completed">Completed</string>
+    <string name="status_failed">Failed</string>
+    <string name="status_canceled">Canceled</string>
+    <string name="no_app_to_open">No app can open this file</string>
+    <string name="clear_completed">Clear completed</string>
+
+    <string name="theme">Theme</string>
+    <string name="theme_system">System default</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="default_download_dir">Default download folder</string>
+    <string name="use_app_folder">Use app folder</string>
+    <string name="clear_history">Clear history</string>
+    <string name="clear_cookies">Clear cookies</string>
+    <string name="cookies_cleared">Cookies cleared</string>
+    <string name="about">About</string>
+    <string name="version">Version</string>
+</resources>
