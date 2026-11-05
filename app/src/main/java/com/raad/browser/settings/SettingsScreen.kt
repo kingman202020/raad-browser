@@ -55,7 +55,7 @@ fun SettingsScreen() {
                 context.contentResolver.takePersistableUriPermission(uri, flags)
             } catch (_: Exception) {
             }
-            Prefs.setDefaultTreeUri(uri.toString())
+            Prefs.updateDefaultTreeUri(uri.toString())
         }
     }
 
@@ -94,7 +94,7 @@ fun SettingsScreen() {
             }
         }
         TextButton(
-            onClick = { Prefs.setDefaultTreeUri(null) },
+            onClick = { Prefs.updateDefaultTreeUri(null) },
             modifier = Modifier.padding(horizontal = 16.dp)
         ) {
             Text(stringResource(R.string.use_app_folder))
@@ -154,12 +154,12 @@ private fun ThemeOption(labelRes: Int, mode: Int) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { Prefs.setThemeMode(mode) }
+            .clickable { Prefs.updateThemeMode(mode) }
             .padding(horizontal = 8.dp)
     ) {
         RadioButton(
             selected = Prefs.themeMode == mode,
-            onClick = { Prefs.setThemeMode(mode) }
+            onClick = { Prefs.updateThemeMode(mode) }
         )
         Text(stringResource(labelRes))
     }

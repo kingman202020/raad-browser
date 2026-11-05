@@ -3,7 +3,7 @@ package com.raad.browser.ui
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.PathData
+import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.unit.dp
 
 /**
@@ -43,7 +43,7 @@ object AppIcons {
             viewportWidth = 24f,
             viewportHeight = 24f
         ).addPath(
-            pathData = PathData(pathData),
+            pathData = addPathNodes(pathData),
             fill = SolidColor(Color.Black)
         ).build()
 }

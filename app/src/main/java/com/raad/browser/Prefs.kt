@@ -32,12 +32,12 @@ object Prefs {
         defaultTreeUri = sp.getString("default_tree_uri", null)
     }
 
-    fun setThemeMode(mode: Int) {
+    fun updateThemeMode(mode: Int) {
         themeMode = mode
         sp.edit().putInt("theme_mode", mode).apply()
     }
 
-    fun setDefaultTreeUri(uri: String?) {
+    fun updateDefaultTreeUri(uri: String?) {
         defaultTreeUri = uri
         sp.edit().putString("default_tree_uri", uri).apply()
     }
