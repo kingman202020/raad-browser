@@ -20,7 +20,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -33,10 +36,11 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * محرك التحميلات المخصص:
- * - **تحميل متعدد الأجزاء للتسريع**: الملفات الكبيرة تُقسم إلى عدة أجزاء
- *   تُحمل بالتوازي عبر ترويسة HTTP Range ثم تُدمج في ملف واحد.
- * - إيقاف مؤقت واستئناف (لكل جزء على حدة، أو للملف كاملاً في الوضع العادي).
- * - رجوع تلقائي للتحميل أحادي الاتصال إذا لم يدعم الخادم التقسيم.
+ * - **تحميل متعدد الأجزاء للتسريع** عبر HTTP Range مع الدمج.
+ * - **استكمال التحميل بعد انقطاع النت أو إغلاق التطبيق**:
+ *   سجل التحميلات يُحفظ على القرص، وعند الاستئناف يُقاس الحجم الفعلي
+ *   للملف الجزئي/الأجزاء من القرص ويُكمل من موضع التوقف بالضبط.
+ * - إعادة محاولة تلقائية (3 مرات) عند أخطاء الشبكة قبل إعلان الفشل.
  * - الحفظ في مجلد SAF يختاره المستخدم أو في مجلد التطبيق الافتراضي.
  */
 object DownloadEngine {
@@ -45,6 +49,8 @@ object DownloadEngine {
     private const val MAX_PARTS = 4                       // أقصى عدد للاتصالات المتوازية
     private const val BYTES_PER_PART = 2L * 1024 * 1024   // جزء جديد لكل 2MB تقريباً
     private const val MIN_SIZE_FOR_PARTS = 2L * 1024 * 1024
+    private const val MAX_RETRY_ATTEMPTS = 3              // إعادة المحاولة عند انقطاع الشبكة
+    private const val RETRY_DELAY_MS = 3_000L
 
     private lateinit var app: Context
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -54,10 +60,13 @@ object DownloadEngine {
     private val jobs = ConcurrentHashMap<String, Job>()
     private val pauseFlags = ConcurrentHashMap<String, AtomicBoolean>()
 
+    /** ملف حفظ حالة التحميلات لاستعادتها بعد إغلاق التطبيق */
+    private val registryFile: File by lazy { File(app.filesDir, "downloads.json") }
+
     fun init(context: Context) {
         app = context.applicationContext
-        // تنظيف بقايا أجزاء من جلسات سابقة (إن أُغلق التطبيق أثناء تحميل)
-        File(app.filesDir, "parts").deleteRecursively()
+        loadRegistry()
+        cleanupOrphanParts()
     }
 
     /** بدء تحميل جديد بعد موافقة المستخدم من النافذة المنبثقة */
@@ -69,6 +78,7 @@ object DownloadEngine {
             treeUri = treeUri
         )
         downloads.add(0, item)
+        persist()
         // تشغيل الخدمة الأمامية ليستمر التحميل حتى بعد الخروج من التطبيق
         DownloadService.start(app)
         start(item, tryResume = false)
@@ -83,6 +93,7 @@ object DownloadEngine {
         if (item.status != DownloadItem.Status.PAUSED && item.status != DownloadItem.Status.FAILED) return
         item.status = DownloadItem.Status.RUNNING
         item.error = null
+        persist()
         DownloadService.start(app)
         start(item, tryResume = true)
     }
@@ -92,6 +103,7 @@ object DownloadEngine {
         jobs[id]?.cancel()
         downloads.firstOrNull { it.id == id }?.let {
             if (it.status != DownloadItem.Status.COMPLETED) it.status = DownloadItem.Status.CANCELED
+            persist()
         }
     }
 
@@ -100,6 +112,7 @@ object DownloadEngine {
         jobs[id]?.cancel()
         downloads.firstOrNull { it.id == id }?.let { partsDir(it).deleteRecursively() }
         downloads.removeAll { it.id == id }
+        persist()
     }
 
     fun clearCompleted() {
@@ -127,25 +140,102 @@ object DownloadEngine {
     }
 
     // ------------------------------------------------------------------
-    // التنفيذ
+    // حفظ/استعادة حالة التحميلات (للاستكمال بعد إغلاق التطبيق)
+    // ------------------------------------------------------------------
+
+    @Synchronized
+    private fun persist() {
+        try {
+            val arr = JSONArray()
+            downloads.forEach { item ->
+                arr.put(
+                    JSONObject()
+                        .put("id", item.id)
+                        .put("url", item.url)
+                        .put("fileName", item.fileName)
+                        .put("treeUri", item.treeUri ?: JSONObject.NULL)
+                        .put("savedFileUri", item.savedFileUri ?: JSONObject.NULL)
+                        .put("totalBytes", item.totalBytes)
+                        .put("downloadedBytes", item.downloadedBytes)
+                        .put("status", item.status.name)
+                )
+            }
+            registryFile.writeText(arr.toString())
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun loadRegistry() {
+        if (!registryFile.exists()) return
+        try {
+            val arr = JSONArray(registryFile.readText())
+            for (i in 0 until arr.length()) {
+                val o = arr.getJSONObject(i)
+                val item = DownloadItem(
+                    id = o.getString("id"),
+                    url = o.getString("url"),
+                    fileName = o.getString("fileName"),
+                    treeUri = if (o.isNull("treeUri")) null else o.getString("treeUri")
+                )
+                item.savedFileUri = if (o.isNull("savedFileUri")) null else o.getString("savedFileUri")
+                item.totalBytes = o.optLong("totalBytes", -1L)
+                item.downloadedBytes = o.optLong("downloadedBytes", 0L)
+
+                // التحميلات التي كانت تعمل عند إغلاق التطبيق تصبح "متوقفة مؤقتاً"
+                // لتظهر في القائمة ويستطيع المستخدم استئنافها من موضع التوقف
+                val saved = o.optString("status", "PAUSED")
+                item.status = when (saved) {
+                    "COMPLETED" -> DownloadItem.Status.COMPLETED
+                    "CANCELED" -> continue   // لا فائدة من استعادة الملغى
+                    else -> DownloadItem.Status.PAUSED
+                }
+                downloads.add(item)
+            }
+        } catch (_: Exception) {
+        }
+    }
+
+    /** حذف مجلدات أجزاء يتيمة لا يقابلها أي تحميل في السجل */
+    private fun cleanupOrphanParts() {
+        val root = File(app.filesDir, "parts")
+        root.listFiles()?.forEach { dir ->
+            if (downloads.none { it.id == dir.name }) dir.deleteRecursively()
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // التنفيذ مع إعادة المحاولة التلقائية
     // ------------------------------------------------------------------
 
     private fun start(item: DownloadItem, tryResume: Boolean) {
         val flag = AtomicBoolean(false)
         pauseFlags[item.id] = flag
         jobs[item.id] = scope.launch {
-            try {
-                perform(item, flag, tryResume)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                if (item.status != DownloadItem.Status.PAUSED &&
-                    item.status != DownloadItem.Status.CANCELED
-                ) {
-                    item.status = DownloadItem.Status.FAILED
-                    item.error = e.message
+            var attempt = 0
+            var resume = tryResume
+            while (true) {
+                try {
+                    perform(item, flag, resume)
+                    break
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    if (flag.get() || item.status == DownloadItem.Status.PAUSED) {
+                        item.status = DownloadItem.Status.PAUSED
+                        break
+                    }
+                    attempt++
+                    if (attempt >= MAX_RETRY_ATTEMPTS) {
+                        item.status = DownloadItem.Status.FAILED
+                        item.error = e.message
+                        break
+                    }
+                    // انقطاع شبكة مثلاً: إعادة المحاولة مع الاستكمال من موضع التوقف
+                    resume = true
+                    delay(RETRY_DELAY_MS)
                 }
             }
+            persist()
         }
     }
 
@@ -189,11 +279,33 @@ object DownloadEngine {
             CookieManager.getInstance().getCookie(url)?.let { setRequestProperty("Cookie", it) }
         }
 
+    /**
+     * قياس الحجم الفعلي للملف الجزئي على القرص.
+     * هذا مصدر الحقيقة عند الاستئناف — يعمل حتى بعد إعادة تشغيل التطبيق.
+     */
+    private fun measurePartialSize(item: DownloadItem): Long {
+        return try {
+            if (item.treeUri != null) {
+                val root = DocumentFile.fromTreeUri(app, Uri.parse(item.treeUri))
+                root?.findFile(item.fileName)?.length() ?: 0L
+            } else {
+                val dir = app.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: app.filesDir
+                val f = File(dir, item.fileName)
+                if (f.exists()) f.length() else 0L
+            }
+        } catch (_: Exception) {
+            0L
+        }
+    }
+
     // ------------------------------------------------------------------
     // الوضع أحادي الاتصال (للملفات الصغيرة أو الخوادم بدون دعم Range)
     // ------------------------------------------------------------------
 
     private fun singleStreamDownload(item: DownloadItem, pauseFlag: AtomicBoolean, tryResume: Boolean) {
+        // عند الاستئناف: نقيس ما وُجد فعلاً على القرص وليس ما في الذاكرة
+        if (tryResume) item.downloadedBytes = measurePartialSize(item)
+
         val conn = openConnection(item.url)
         if (tryResume && item.downloadedBytes > 0) {
             conn.setRequestProperty("Range", "bytes=${item.downloadedBytes}-")
@@ -201,6 +313,17 @@ object DownloadEngine {
 
         conn.connect()
         val code = conn.responseCode
+
+        // 416 = النطاق غير مقبول: غالباً الملف مكتمل أصلاً على القرص
+        if (code == 416 && tryResume && item.downloadedBytes > 0) {
+            if (item.totalBytes <= 0 || item.downloadedBytes >= item.totalBytes) {
+                item.status = DownloadItem.Status.COMPLETED
+                return
+            }
+            // حجم غير متطابق: نعيد من الصفر
+            item.downloadedBytes = 0
+            return singleStreamDownload(item, pauseFlag, false)
+        }
         if (code !in 200..299) throw IOException("HTTP $code")
 
         val append = tryResume && code == HttpURLConnection.HTTP_PARTIAL && item.downloadedBytes > 0
@@ -259,7 +382,7 @@ object DownloadEngine {
         val dir = partsDir(item)
         dir.mkdirs()
 
-        // المحمّل سابقاً من كل جزء (للاستئناف بعد إيقاف مؤقت)
+        // المحمّل سابقاً من كل جزء (مقاساً من القرص — يصحّح نفسه بعد أي انقطاع)
         val downloaded = LongArray(partCount) { i ->
             val f = File(dir, "part$i")
             val maxLen = ranges[i].second - ranges[i].first + 1
@@ -397,7 +520,11 @@ object DownloadEngine {
                     .toString()
                 FileOutputStream(file, false)
             } else {
-                FileOutputStream(File(dir, item.fileName), true)
+                val file = File(dir, item.fileName)
+                item.savedFileUri = FileProvider
+                    .getUriForFile(app, app.packageName + ".fileprovider", file)
+                    .toString()
+                FileOutputStream(file, true)
             }
         }
     }
